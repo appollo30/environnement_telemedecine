@@ -1,6 +1,6 @@
 import argparse
 import os
-from src.utils import raw_to_df
+from src.utils import parse_raw, simple_line_plot
 import json
 
 if __name__ == "__main__":
@@ -18,7 +18,9 @@ if __name__ == "__main__":
     with open(file_path, 'r') as file:
         file_content = file.readlines()
     
-    header_json = raw_to_df(file_content)
+    header_json, df = parse_raw(file_content)
     
-    print(json.dumps(header_json, indent=4, ensure_ascii=False))
-    
+    # Voici un exemple d'utilisation du parsing, mais on peut faire bien plus
+    # (mettre des filtres, faire des analyses de Fourier, à l'avenir créer le corps de la requête pour poster les données sur le serveur, etc.))
+    fig = simple_line_plot(df)
+    fig.show()

@@ -6,3 +6,4 @@ seaborn
 jupyterllab
 notebook
 ipykernel
+scipy
