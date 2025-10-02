@@ -15,7 +15,7 @@ Le projet traite des fichiers de données brutes (format `.txt`) contenant des i
 
 1. Clonez le projet :
 ```bash
-git clone <votre-repo>
+git clone https://github.com/appollo30/environnement_telemedecine.git
 ```
 
 
