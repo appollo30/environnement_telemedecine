@@ -8,6 +8,14 @@ from plotly.subplots import make_subplots
 from scipy.signal import butter, filtfilt
 
 DEVICE_MAC_ADDRESS = "00:07:80:65:E0:11" # L'adresse MAC de notre capteur
+NBITS = 16 # Nombre de bits utilisés pour encoder les données, ici les 3 capteurs utilisent 16 bits
+CMIN_X = 26300 
+CMIN_Y = 26000
+CMIN_Z = 26000
+CMAX_X = 39100
+CMAX_Y = 38900
+CMAX_Z = 39000
+
 
 def parse_raw(file_content : List[str]) -> Tuple[Dict, pd.DataFrame]:
     header = file_content[1][2:]
@@ -32,10 +40,17 @@ def parse_raw(file_content : List[str]) -> Tuple[Dict, pd.DataFrame]:
     df = df[["timestamp", "THORAX", "X", "Y"]]
     df = df.set_index("timestamp")
     
-    # Filtre butterworth :
-    # df = butterworth_filter_thorax(df)
+    # Fonctions de transfert, on convertit les valeurs brutes en valeurs physiques
+    df["THORAX"] = df["THORAX"].apply(convert_thorax) # En pourcentage de la capacité totale
+    df["X"] = df["X"].apply(lambda x: (x - CMIN_X) / (CMAX_X - CMIN_X) * 2 - 1) # En g
+    df["Y"] = df["Y"].apply(lambda y: (y - CMIN_Y) / (CMAX_Y - CMIN_Y) * 2 - 1) # En g
+    
+    # Rajouter des filtres si besoin
     
     return header_json, df
+
+def convert_thorax(raw_value: int) -> float:
+    return (raw_value/(2**NBITS)-0.5)*100
 
 def simple_line_plot(df : pd.DataFrame):
     fig = make_subplots(rows=3, cols=1, shared_xaxes=True, subplot_titles=["THORAX", "X", "Y"])
@@ -55,17 +70,16 @@ def fourier_transform_plot(df : pd.DataFrame):
     fig = go.Figure()
     fig.add_trace(go.Scatter(x=freq, y=fft_thorax, mode='lines', name='THORAX'))
     fig.update_layout(title='Fourier Transform of THORAX', xaxis_title='Frequency (Hz)', yaxis_title='Amplitude')
-    fig.update_xaxes(range=[0, 1])
+    fig.update_xaxes(range=[0, 5])
     return fig
 
-def butterworth_filter_thorax(df: pd.DataFrame, lowcut=0.05, highcut=0.8, order=4) -> pd.DataFrame:
-    # Calculate sampling rate from DataFrame index
-    sampling_rate = df.shape[0] / (df.index[-1] - df.index[0]).total_seconds()
-    nyq = 0.5 * sampling_rate
+def butterworth_filter_thorax(df: pd.DataFrame, lowcut=0.1, highcut=3, order=4) -> pd.DataFrame:
+    fs = 200  # Fréquence d'échantillonnage
+    nyq = 0.5 * fs
     low = lowcut / nyq
     high = highcut / nyq
     b, a = butter(order, [low, high], btype='band')
-    filtered = filtfilt(b, a, df["THORAX"].values)
+    filtered = filtfilt(b, a, df["THORAX"])
     df_filtered = df.copy()
     df_filtered["THORAX"] = filtered
     return df_filtered
