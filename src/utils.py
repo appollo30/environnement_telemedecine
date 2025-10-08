@@ -15,7 +15,7 @@ CMIN_Z = 26000
 CMAX_X = 39100
 CMAX_Y = 38900
 CMAX_Z = 39000
-
+SAMPLING_RATE = 200 # Hz, fréquence d'échantillonnage
 
 def parse_raw(file_content : List[str]) -> Tuple[Dict, pd.DataFrame]:
     header = file_content[1][2:]
@@ -38,7 +38,7 @@ def parse_raw(file_content : List[str]) -> Tuple[Dict, pd.DataFrame]:
     df = pd.DataFrame(result)
     df["timestamp"] = pd.date_range(start=f"{date} {time}", periods=len(df), freq=pd.Timedelta(milliseconds=1000/sampling_rate))
     df = df[["timestamp", "THORAX", "X", "Y"]]
-    df = df.set_index("timestamp")
+    #df = df.set_index("timestamp")
     
     # Fonctions de transfert, on convertit les valeurs brutes en valeurs physiques
     df["THORAX"] = df["THORAX"].apply(convert_thorax) # En pourcentage de la capacité totale
@@ -48,6 +48,8 @@ def parse_raw(file_content : List[str]) -> Tuple[Dict, pd.DataFrame]:
     # Rajouter des filtres si besoin
     
     return header_json, df
+
+# Traitement des données
 
 def convert_thorax(raw_value: int) -> float:
     return (raw_value/(2**NBITS)-0.5)*100
@@ -64,8 +66,7 @@ def simple_line_plot(df : pd.DataFrame):
 
 def fourier_transform_plot(df : pd.DataFrame):
     n = len(df)
-    sampling_rate = df.shape[0] / (df.index[-1] - df.index[0]).total_seconds()
-    freq = np.fft.rfftfreq(n, d=1/sampling_rate)
+    freq = np.fft.rfftfreq(n, d=1/SAMPLING_RATE)
     fft_thorax = np.abs(np.fft.rfft(df["THORAX"]))
     fig = go.Figure()
     fig.add_trace(go.Scatter(x=freq, y=fft_thorax, mode='lines', name='THORAX'))
@@ -73,13 +74,53 @@ def fourier_transform_plot(df : pd.DataFrame):
     fig.update_xaxes(range=[0, 5])
     return fig
 
-def butterworth_filter_thorax(df: pd.DataFrame, lowcut=0.1, highcut=3, order=4) -> pd.DataFrame:
-    fs = 200  # Fréquence d'échantillonnage
-    nyq = 0.5 * fs
-    low = lowcut / nyq
-    high = highcut / nyq
-    b, a = butter(order, [low, high], btype='band')
-    filtered = filtfilt(b, a, df["THORAX"])
-    df_filtered = df.copy()
-    df_filtered["THORAX"] = filtered
-    return df_filtered
+def segment_plot(df : pd.DataFrame, sequences : List[Dict]):
+    fig = make_subplots(rows=3, cols=1, shared_xaxes=True, subplot_titles=["THORAX", "X", "Y"])
+    activity_colors = dict(zip(
+        ["MONTEE", "DESCENTE", "APNEE", "other"],
+        px.colors.qualitative.Plotly[:4]
+    ))
+
+    for sequence in sequences:
+        begin = sequence["begin"]
+        end = sequence["end"]
+        context = sequence.get("sequenceContext", "other")
+        color = activity_colors.get(context, "gray")
+        seg_df = df.iloc[begin:end+1]
+
+        # Only show legend for the first trace of each sequence/context
+        fig.add_trace(go.Scatter(
+            x=seg_df["timestamp"],
+            y=seg_df["THORAX"],
+            name=context,
+            line=dict(color=color),
+            legendgroup=context,
+            showlegend=True
+        ), row=1, col=1)
+        fig.add_trace(go.Scatter(
+            x=seg_df["timestamp"],
+            y=seg_df["X"],
+            name=context,
+            line=dict(color=color),
+            legendgroup=context,
+            showlegend=False
+        ), row=2, col=1)
+        fig.add_trace(go.Scatter(
+            x=seg_df["timestamp"],
+            y=seg_df["Y"],
+            name=context,
+            line=dict(color=color),
+            legendgroup=context,
+            showlegend=False
+        ), row=3, col=1)
+
+    fig.update_layout(height=800, showlegend=True)
+    return fig
+
+def segment_data(df : pd.DataFrame, sequences : List[Dict]) -> List[pd.DataFrame]:
+    segmented_dfs = []
+    for sequence in sequences:
+        begin = sequence["begin"]
+        end = sequence["end"]
+        segmented_dfs.append(df.iloc[begin:end+1].copy())
+    return segmented_dfs

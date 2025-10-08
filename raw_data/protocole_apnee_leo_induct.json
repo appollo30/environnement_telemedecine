@@ -1,0 +1,19 @@
+{
+    "studentId" : "68411A",
+    "sequenceDescription" : "Montée des escaliers, après une apnée de 30 secondes",
+    "sessionId" : "S2",
+    "sequences" : [
+        {
+            "sequenceId" : 1,
+            "begin" : 1200,
+            "end" : 7200,
+            "sequenceContext" : "APNEE"
+        },
+        {
+            "sequenceId" : 2,
+            "begin" : 7200,
+            "end" : 18980,
+            "sequenceContext" : "MONTEE"
+        }
+    ]
+}

@@ -4,5 +4,3 @@
 numpy
 pandas
 plotly
-h5py
-pytables
