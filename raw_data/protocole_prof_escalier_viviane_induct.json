@@ -1,24 +1,24 @@
 {
-    "studentId" : "68411A",
+    "studentId" : "?",
     "sequenceDescription" : "Montée, descente puis montée",
-    "sessionId" : "S2",
+    "sessionId" : "S1",
     "sequences" : [
         {
             "sequenceId" : 1,
-            "begin" : 0,
-            "end" : 13171,
+            "begin" : 320,
+            "end" : 13000,
             "sequenceContext" : "MONTEE"
         },
         {
             "sequenceId" : 2,
-            "begin" : 13172,
-            "end" : 23550,
+            "begin" : 13275,
+            "end" : 24400,
             "sequenceContext" : "DESCENTE"
         },
         {
             "sequenceId" : 3,
-            "begin" : 23551,
-            "end" : 35608,
+            "begin" : 24401,
+            "end" : 36523,
             "sequenceContext" : "MONTEE"
         }
     ]

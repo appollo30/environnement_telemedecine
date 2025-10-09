@@ -1,0 +1,13 @@
+{
+    "studentId" : "68411A",
+    "sequenceDescription" : "Marche sur toute la longueur de la rue",
+    "sessionId" : "S1",
+    "sequences" : [
+        {
+            "sequenceId" : 1,
+            "begin" : 575,
+            "end" : 37094,
+            "sequenceContext" : "MARCHE"
+        }
+    ]
+}

@@ -74,53 +74,27 @@ def fourier_transform_plot(df : pd.DataFrame):
     fig.update_xaxes(range=[0, 5])
     return fig
 
-def segment_plot(df : pd.DataFrame, sequences : List[Dict]):
-    fig = make_subplots(rows=3, cols=1, shared_xaxes=True, subplot_titles=["THORAX", "X", "Y"])
-    activity_colors = dict(zip(
-        ["MONTEE", "DESCENTE", "APNEE", "other"],
-        px.colors.qualitative.Plotly[:4]
-    ))
-
-    for sequence in sequences:
-        begin = sequence["begin"]
-        end = sequence["end"]
-        context = sequence.get("sequenceContext", "other")
-        color = activity_colors.get(context, "gray")
-        seg_df = df.iloc[begin:end+1]
-
-        # Only show legend for the first trace of each sequence/context
-        fig.add_trace(go.Scatter(
-            x=seg_df["timestamp"],
-            y=seg_df["THORAX"],
-            name=context,
-            line=dict(color=color),
-            legendgroup=context,
-            showlegend=True
-        ), row=1, col=1)
-        fig.add_trace(go.Scatter(
-            x=seg_df["timestamp"],
-            y=seg_df["X"],
-            name=context,
-            line=dict(color=color),
-            legendgroup=context,
-            showlegend=False
-        ), row=2, col=1)
-        fig.add_trace(go.Scatter(
-            x=seg_df["timestamp"],
-            y=seg_df["Y"],
-            name=context,
-            line=dict(color=color),
-            legendgroup=context,
-            showlegend=False
-        ), row=3, col=1)
-
-    fig.update_layout(height=800, showlegend=True)
-    return fig
-
-def segment_data(df : pd.DataFrame, sequences : List[Dict]) -> List[pd.DataFrame]:
+def segment_data(df : pd.DataFrame, sequences : List[Dict]) -> List[Tuple[pd.DataFrame, str]]:
     segmented_dfs = []
     for sequence in sequences:
         begin = sequence["begin"]
         end = sequence["end"]
-        segmented_dfs.append(df.iloc[begin:end+1].copy())
+        segmented_dfs.append((df.iloc[begin:end+1].copy(), sequence["sequenceContext"]))
     return segmented_dfs
+
+def segment_plot(df : pd.DataFrame, sequences : List[Dict]):
+    segmented_dfs = segment_data(df, sequences)
+    
+    fig = make_subplots(rows=3, cols=1, shared_xaxes=True, subplot_titles=["THORAX", "X", "Y"])
+    color_map = dict(zip(["MONTEE", "DESCENTE", "MARCHE", "APNEE", "REPOS"], px.colors.qualitative.Plotly))
+    fig.add_trace(go.Scatter(x=df.index, y=df["THORAX"], mode='lines', line=dict(color='gray'), name="other"), row=1, col=1)
+    fig.add_trace(go.Scatter(x=df.index, y=df["X"], mode='lines', line=dict(color='gray'), name='other'), row=2, col=1)
+    fig.add_trace(go.Scatter(x=df.index, y=df["Y"], mode='lines', line=dict(color='gray'), name='other'), row=3, col=1)
+    for df, context in segmented_dfs:
+        color = color_map.get(context, "gray")
+        fig.add_trace(go.Scatter(x=df.index, y=df["THORAX"], mode='lines', line=dict(color=color), name=context), row=1, col=1)
+        fig.add_trace(go.Scatter(x=df.index, y=df["X"], mode='lines', line=dict(color=color), name=context), row=2, col=1)
+        fig.add_trace(go.Scatter(x=df.index, y=df["Y"], mode='lines', line=dict(color=color), name=context), row=3, col=1)
+    fig.update_layout(height=800, showlegend=False)
+    return fig
+        
