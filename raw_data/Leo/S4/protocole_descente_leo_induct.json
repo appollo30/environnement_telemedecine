@@ -1,0 +1,31 @@
+{
+    "studentId" : "68411A",
+    "sequenceDescription" : "Descente lente de 2 étages puis descente rapide de 2 étages, puis repos",
+    "sessionId" : "S4",
+    "sequences" : [
+        {
+            "sequenceId" : 1,
+            "begin" : 268,
+            "end" : 5732,
+            "sequenceContext" : "DESCENTE"
+        },
+        {
+            "sequenceId" : 2,
+            "begin" : 5750,
+            "end" : 11316,
+            "sequenceContext" : "REPOS"
+        },
+        {
+            "sequenceId" : 3,
+            "begin" : 11317,
+            "end" : 15241,
+            "sequenceContext" : "DESCENTE"
+        },
+        {
+            "sequenceId" : 4,
+            "begin" : 15242,
+            "end" : 21569,
+            "sequenceContext" : "REPOS"
+        }
+    ]
+}

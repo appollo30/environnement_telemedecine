@@ -1,6 +1,6 @@
 {
     "studentId" : "?",
-    "sequenceDescription" : "Montée, descente puis montée",
+    "sessionDescription" : "Montée, descente puis montée",
     "sessionId" : "S1",
     "sequences" : [
         {

@@ -5,7 +5,6 @@ from typing import List, Tuple, Dict
 import plotly.express as px
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
-from scipy.signal import butter, filtfilt
 
 DEVICE_MAC_ADDRESS = "00:07:80:65:E0:11" # L'adresse MAC de notre capteur
 NBITS = 16 # Nombre de bits utilisés pour encoder les données, ici les 3 capteurs utilisent 16 bits
@@ -98,3 +97,65 @@ def segment_plot(df : pd.DataFrame, sequences : List[Dict]):
     fig.update_layout(height=800, showlegend=False)
     return fig
         
+def session_to_json(df : pd.DataFrame, header_json : Dict, metadata : Dict) -> List[Dict]:
+    """
+    Prend en entrée 3 paramètres :
+      - la DataFrame de la session, avec des colonnes pour le mouvement en X et 
+        en Y, la respiration thoracique, et avec un index incrémenté de 1.
+      - le header en format json, qui se trouve au début du fichier txt de la session
+      - les métadonnées en format json (pour le séquencement)
+    Retourne une liste de json, qui désignent chacun le request body qui sera envoyé 
+    pour chaque séquence.      
+    """
+    result = list()
+    df_copy = df.copy()
+    
+    sequences = metadata["sequences"]
+    segmented_dfs = segment_data(df_copy, sequences)
+    
+    device_id = DEVICE_MAC_ADDRESS
+    student_id = metadata["studentId"]
+    session_id = metadata["sessionId"]
+    session_description = metadata["sessionDescription"]
+    
+    sequence_structure = [
+        "INDEX",
+        "RESP_THORAX",
+        "ACC_HORIZONTAL",
+        "ACC_VERTICAL"
+    ]
+    sequence_sampling_rate = header_json[DEVICE_MAC_ADDRESS]["sampling rate"]
+    sequence_resolution = header_json[DEVICE_MAC_ADDRESS]["resolution"][0]
+    
+    for sequence_df, sequence in zip(segmented_dfs, sequences):
+        sequence_df = sequence_df[0]
+        sequence_id = sequence["sequenceId"]
+        sequence_start_datetime = str(sequence_df["timestamp"].iloc[0])
+        sequence_context = sequence["sequenceContext"]
+        if sequence.get("sequenceDescription"):
+            sequence_description = f"{session_description}, {sequence.get("sequenceDescription")}"
+        else:
+            sequence_description = session_description
+        
+        # Transformations sur la DataFrame
+        sequence_df = sequence_df.reset_index(drop=True) # On reset l'index (l'index est conservé lors 
+        # du séquençage, donc les séquences ne commencent pas forcément à 0 par défaut)
+        sequence_df["INDEX"] = sequence_df.index.astype(int) # On ajoute une colonne d'index
+        sequence_df = sequence_df[["INDEX","THORAX","X","Y"]] # On supprime la colonne "timestamp"
+        data = sequence_df.values.tolist()
+        
+        sequence_json = {
+            "deviceId": device_id,
+            "studentId": student_id,
+            "sessionId": session_id,
+            "sequenceId": sequence_id,
+            "sequenceStartDateTime": sequence_start_datetime,
+            "sequenceContext": sequence_context,
+            "sequenceDescription": sequence_description,
+            "sequenceStructure" : sequence_structure,
+            "sequenceSamplingRate": sequence_sampling_rate,
+            "sequenceResolution": sequence_resolution,
+            "data" : data
+        }
+        result.append(sequence_json)
+    return result
