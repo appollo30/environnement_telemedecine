@@ -1,0 +1,31 @@
+{
+    "studentId" : "74205P",
+    "sessionDescription" : "Marche, apnée, montée (1 étage), repos",
+    "sessionId" : "S4",
+    "sequences" : [
+        {
+            "sequenceId" : 1,
+            "begin" : 487,
+            "end" : 7064,
+            "sequenceContext" : "MARCHE"
+        },
+        {
+            "sequenceId" : 2,
+            "begin" : 7448,
+            "end" : 9261,
+            "sequenceContext" : "APNEE"
+        },
+        {
+            "sequenceId" : 3,
+            "begin" : 9438,
+            "end" : 13768,
+            "sequenceContext" : "MONTEE"
+        },
+                {
+            "sequenceId" : 4,
+            "begin" : 13769,
+            "end" : 19679,
+            "sequenceContext" : "REPOS"
+        }
+    ]
+}
