@@ -1,3 +1,4 @@
 .vscode/
 data_exploration/
 */__pycache__
+.env

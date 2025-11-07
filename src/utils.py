@@ -130,7 +130,7 @@ def session_to_json(df : pd.DataFrame, header_json : Dict, metadata : Dict) -> L
     for sequence_df, sequence in zip(segmented_dfs, sequences):
         sequence_df = sequence_df[0]
         sequence_id = sequence["sequenceId"]
-        sequence_start_datetime = str(sequence_df["timestamp"].iloc[0])
+        sequence_start_datetime = sequence_df["timestamp"].iloc[0].strftime("%Y-%m-%d %H:%M:%S")
         sequence_context = sequence["sequenceContext"]
         if sequence.get("sequenceDescription"):
             sequence_description = f"{session_description}, {sequence.get("sequenceDescription")}"

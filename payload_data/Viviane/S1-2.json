@@ -3,7 +3,7 @@
     "studentId": "?",
     "sessionId": "S1",
     "sequenceId": 2,
-    "sequenceStartDateTime": "2025-09-19 10:04:22.165000",
+    "sequenceStartDateTime": "2025-09-19 10:04:22",
     "sequenceContext": "DESCENTE",
     "sequenceDescription": "Montée, descente puis montée",
     "sequenceStructure": [

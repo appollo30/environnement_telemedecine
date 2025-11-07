@@ -12,3 +12,5 @@ dependencies:
   - notebook
   - seaborn
   - matplotlib
+  - requests
+  - python-dotenv

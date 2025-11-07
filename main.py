@@ -3,8 +3,12 @@ import os
 from src.utils import parse_raw, simple_line_plot, segment_plot, session_to_json
 import json
 from glob import glob
+import requests
+from dotenv import load_dotenv
 
 if __name__ == "__main__":
+    load_dotenv()
+    
     parser = argparse.ArgumentParser(description="Outil pour transformer des sessions en données traitées.")
     parser.add_argument("fichier", help="Chemin du repertoire à analyser")
     
@@ -36,7 +40,21 @@ if __name__ == "__main__":
     path = os.path.normpath(session_path)
     student_name = path.split(os.sep)[-2]
     
+    # Enregistrement en fichiers json
     for payload in json_payload:
         output_path = os.path.join("payload_data", student_name, f"{payload["sessionId"]}-{payload["sequenceId"]}.json")
         with open(output_path, "w") as f:
             json.dump(payload, f, ensure_ascii=False, indent=4)
+    
+    # Envoi sur le serveur
+    url = "https://www.gaalactic.fr/~sev_5106e/ws/physioWeb"
+    
+    headers = {
+        'Authorization': f'Basic {os.getenv("BASIC_AUTH")}',
+    }
+    
+    for payload in json_payload:
+        form_data = {'dataset': json.dumps(payload, ensure_ascii=False)}
+        response = requests.post(url, headers=headers, data=form_data)
+
+        print(json.dumps(response.json(), ensure_ascii=False, indent=4))
