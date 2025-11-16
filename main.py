@@ -1,14 +1,20 @@
 import argparse
 import os
-from src.utils import parse_raw, simple_line_plot, segment_plot, session_to_json
+from src.data_loading import load_session
+from src.data_writing import save_session_input_to_json, post_session_input_to_server
 import json
 from glob import glob
 import requests
 from dotenv import load_dotenv
 
 if __name__ == "__main__":
-    load_dotenv()
     
+    # Chargement des variables d'environnement
+    load_dotenv()
+    url = os.getenv("SERVER_URL")
+    auth_token = os.getenv("BASIC_AUTH")
+    
+    # Parsing des arguments
     parser = argparse.ArgumentParser(description="Outil pour transformer des sessions en données traitées.")
     parser.add_argument("fichier", help="Chemin du repertoire à analyser")
     
@@ -21,40 +27,26 @@ if __name__ == "__main__":
     try :
         recording_file_path = glob(os.path.join(session_path, "*.txt"))[0]
         metadata_file_path = glob(os.path.join(session_path, "*.json"))[0]
+        student_name = os.path.normpath(session_path).split(os.sep)[-2]
     except IndexError:
         raise ValueError("Le répertoire {session_path} devrait contenir EXCLUSIVEMENT un fichier .txt contenant l'enregistrement " +
                          "de la session, et un fichier .json de métadonnées")
     
+    
+    # CHARGEMNENT DE LA SESSION
+    
     with open(recording_file_path, 'r') as f:
-        file_content = f.readlines()
-    
-    header_json, df = parse_raw(file_content)
-
+        txt_file_raw_content = f.readlines()
+        
     with open(metadata_file_path, 'r') as meta_file:
-        metadata = json.load(meta_file)
+        metadata_json = json.load(meta_file)
+        
+    session = load_session(metadata_json, txt_file_raw_content)
     
-    # CONVERSION EN JSON POUR L'ENVOI SUR LE SERVEUR
+    # ENREGISTREMENT EN FICHIERS JSON
+    # print(f"Enregistrement des fichiers JSON dans le répertoire payload_data/{student_name}/")
+    # save_session_input_to_json(session_input=session, student_name=student_name)
     
-    json_payload = session_to_json(df, header_json, metadata)
+    # ENVOI AU SERVEUR
     
-    path = os.path.normpath(session_path)
-    student_name = path.split(os.sep)[-2]
-    
-    # Enregistrement en fichiers json
-    for payload in json_payload:
-        output_path = os.path.join("payload_data", student_name, f"{payload["sessionId"]}-{payload["sequenceId"]}.json")
-        with open(output_path, "w") as f:
-            json.dump(payload, f, ensure_ascii=False, indent=4)
-    
-    # Envoi sur le serveur
-    url = "https://www.gaalactic.fr/~sev_5106e/ws/physioWeb"
-    
-    headers = {
-        'Authorization': f'Basic {os.getenv("BASIC_AUTH")}',
-    }
-    
-    for payload in json_payload:
-        form_data = {'dataset': json.dumps(payload, ensure_ascii=False)}
-        response = requests.post(url, headers=headers, data=form_data)
-
-        print(json.dumps(response.json(), ensure_ascii=False, indent=4))
+    post_session_input_to_server(session_input=session, url=url, auth_token=auth_token)

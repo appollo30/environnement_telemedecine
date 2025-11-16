@@ -1,6 +1,5 @@
 {
     "deviceId": "00:07:80:65:E0:11",
-    "studentId": "68411A",
     "sessionId": "S4",
     "sequenceId": 1,
     "sequenceStartDateTime": "2025-09-19 10:34:45",
@@ -32805,5 +32804,6 @@
             -0.39812499999999995,
             0.7872868217054263
         ]
-    ]
+    ],
+    "studentId": "68411A"
 }
