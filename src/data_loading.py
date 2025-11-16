@@ -3,6 +3,8 @@ import json
 from typing import List, Dict
 from src.serializers import SequenceInput, SessionHeader, SessionMetadata, SessionInput
 from datetime import datetime
+import os
+from glob import glob
 
 DEVICE_MAC_ADDRESS = "00:07:80:65:E0:11" # L'adresse MAC de notre capteur
 NBITS = 16 # Nombre de bits utilisés pour encoder les données, ici les 3 capteurs utilisent une résolution de 16 bits
@@ -138,5 +140,32 @@ def load_session(metadata_json : Dict, txt_file_raw_content : List[str]) -> Sess
     session = to_session(segmented_dfs, metadata, header)
     
     return session
+
+# CHARGEMENT DE TOUTES LES SESSIONS A PARTIR D'UN REPERTOIRE DE DONNEES BRUTES    
+
+def load_all_sessions_from_raw_data(input_directory: str) -> List[SessionInput]:
+    if not os.path.isdir(input_directory):
+        raise FileNotFoundError(f"Le chemin {input_directory} que vous avez renseigné n'existe pas ou n'est pas un répertoire")
     
+    session_dirs = [d for d in glob(os.path.join(input_directory, "*")) if os.path.isdir(d)]
+    sessions = []
+    for session_path in session_dirs:
+        try:
+            recording_file_path = glob(os.path.join(session_path, "*.txt"))[0]
+            metadata_file_path = glob(os.path.join(session_path, "*.json"))[0]
+        except IndexError:
+            print(f"Le répertoire {session_path} devrait contenir EXCLUSIVEMENT un fichier .txt et un fichier .json. Ignoré.")
+            continue
+        
+        print(f"Traitement de la session du répertoire : {session_path}")
+        
+        with open(recording_file_path, 'r') as f:
+            txt_file_raw_content = f.readlines()
+        
+        with open(metadata_file_path, 'r') as meta_file:
+            metadata_json = json.load(meta_file)
+        
+        session = load_session(metadata_json, txt_file_raw_content)
+        sessions.append(session)
     
+    return sessions

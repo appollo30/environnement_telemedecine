@@ -3,6 +3,7 @@ import json
 import os
 from typing import Union
 import requests
+from typing import List
 
 def save_session_input_to_json(session_input: SessionInput, student_name: str):
     student_path = os.path.join("payload_data", student_name)
@@ -28,3 +29,15 @@ def post_session_input_to_server(session_input: SessionInput, url: str, auth_tok
         response = requests.post(url, headers=headers, data=form_data)
 
         print(json.dumps(response.json(), ensure_ascii=False, indent=4))
+
+
+
+def save_all_sessions_to_json(sessions : List[SessionInput], student_name: str):
+    for session in sessions:
+        print(f"Enregistrement des fichiers JSON pour la session {session.sessionId}")
+        save_session_input_to_json(session_input=session, student_name=student_name)
+
+def post_all_sessions_to_server(sessions : List[SessionInput], url: str, auth_token: str):
+    for session in sessions:
+        print(f"Envoi de la session {session.sessionId} au serveur")
+        post_session_input_to_server(session_input=session, url=url, auth_token=auth_token)
