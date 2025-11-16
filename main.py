@@ -9,7 +9,7 @@ from typing import List
 if __name__ == "__main__":
     load_dotenv()
     url = os.getenv("SERVER_URL")
-    auth_token = os.getenv("BASIC_AUTH")
+    auth_token = os.getenv("BASIC_AUTH") # ATTENTION A BIEN REMPLACER LA VALEUR DANS LE FICHIER .env
     
     input_directory = "raw_data/Leo"
     student_name = "Leo"

@@ -7,7 +7,7 @@ from typing import List
 
 def post_session_input_to_server(session_input: SessionInput, url: str, auth_token: str) -> None:
     headers = {
-        'Authorization': f'Basic {auth_token}', # ATTENTION A BIEN REMPLACER LA VALEUR DANS LE FICHIER .env
+        'Authorization': f'Basic {auth_token}'
     }
     
     for sequence in session_input.sequences:

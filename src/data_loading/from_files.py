@@ -157,7 +157,7 @@ def load_all_sessions_from_raw_data(input_directory: str) -> List[SessionInput]:
             print(f"Le répertoire {session_path} devrait contenir EXCLUSIVEMENT un fichier .txt et un fichier .json. Ignoré.")
             continue
         
-        print(f"Traitement de la session du répertoire : {session_path}")
+        print(f"Chargement de la session du répertoire : {session_path}")
         
         with open(recording_file_path, 'r') as f:
             txt_file_raw_content = f.readlines()
