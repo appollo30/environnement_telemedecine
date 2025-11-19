@@ -7,10 +7,12 @@ dependencies:
   - numpy
   - pandas
   - plotly
-  - jupyterlab
-  - ipykernel
-  - notebook
-  - seaborn
-  - matplotlib
   - requests
   - python-dotenv
+  - pydantic
+  - matplotlib
+  - seaborn
+  - jupyterlab
+  - notebook
+  - ipykernel
+  - scipy

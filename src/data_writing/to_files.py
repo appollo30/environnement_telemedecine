@@ -44,6 +44,13 @@ def save_all_session_outputs_to_json(all_sessions: Dict[str, List[SessionInput]]
         student_path = os.path.join("student_data", student_id)
         os.makedirs(student_path, exist_ok=True)
         for session in sessions:
-            output_path = os.path.join(student_path, f"{session.sessionId}.json")
-            with open(output_path, "w") as f:
+            output_path_json = os.path.join(student_path, f"{session.sessionId}.json")
+            output_path_jpeg = os.path.join(student_path, f"{session.sessionId}.jpeg")
+            with open(output_path_json, "w") as f:
                 json.dump(session.model_dump(mode="json"), f, ensure_ascii=False, indent=4)
+                try:
+                    plot = session.plot(channel="RESP_THORAX", timestamp=True)
+                    plot.savefig(output_path_jpeg)
+                except Exception as e:
+                    print(f"Erreur lors de la génération du plot pour la session {session.sessionId} de l'étudiant {student_id}: {e}")
+                
