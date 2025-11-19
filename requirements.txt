@@ -1,5 +1,3 @@
-# Requirements for production. All the additional packages for testing, 
-# linting and plotting are located in requirements-dev.txt
 
 numpy
 pandas
@@ -7,3 +5,10 @@ plotly
 requests
 dotenv
 pydantic
+
+matplotlib
+seaborn
+jupyterllab
+notebook
+ipykernel
+scipy

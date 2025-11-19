@@ -1,9 +1,0 @@
-# Requirements for developement, to see the prod requirements please consult /requirements.txt
--r requirements.txt
-
-matplotlib
-seaborn
-jupyterllab
-notebook
-ipykernel
-scipy

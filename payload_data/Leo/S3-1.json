@@ -1,6 +1,5 @@
 {
     "deviceId": "00:07:80:65:E0:11",
-    "sessionId": "S3",
     "sequenceId": 1,
     "sequenceStartDateTime": "2025-09-19 10:39:32",
     "sequenceContext": "APNEE",
@@ -36021,5 +36020,6 @@
             0.9243410852713179
         ]
     ],
-    "studentId": "68411A"
+    "studentId": "68411A",
+    "sessionId": "S3"
 }
