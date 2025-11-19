@@ -6,16 +6,25 @@ from datetime import datetime
 import os
 from glob import glob
 
-DEVICE_MAC_ADDRESS = "00:07:80:65:E0:11" # L'adresse MAC de notre capteur
-NBITS = 16 # Nombre de bits utilisés pour encoder les données, ici les 3 capteurs utilisent une résolution de 16 bits
-CMIN_X = 26300 
+DEVICE_MAC_ADDRESS = "00:07:80:65:E0:11"  # L'adresse MAC de notre capteur
+NBITS = 16  # Nombre de bits utilisés pour encoder les données, ici les 3 capteurs utilisent une résolution de 16 bits
+CMIN_X = 26300
 CMIN_Y = 26000
 CMIN_Z = 26000
 CMAX_X = 39100
 CMAX_Y = 38900
 CMAX_Z = 39000
 
-def load_header(txt_file_raw_content : List[str]) -> SessionHeader:
+def load_header(txt_file_raw_content: List[str]) -> SessionHeader:
+    """
+    Charge l'en-tête d'un fichier texte brut et retourne un objet SessionHeader.
+
+    Args:
+        txt_file_raw_content (List[str]): Contenu brut du fichier texte, ligne par ligne.
+
+    Returns:
+        SessionHeader: Objet contenant les métadonnées de la session (fréquence d'échantillonnage, date/heure de début, résolution).
+    """
     header = txt_file_raw_content[1][2:]
     header_json = json.loads(header).get(DEVICE_MAC_ADDRESS)
     return SessionHeader(
@@ -25,36 +34,61 @@ def load_header(txt_file_raw_content : List[str]) -> SessionHeader:
             "%Y-%m-%d %H:%M:%S.%f"
         ),
         resolution=header_json.get("resolution")[0]
-    ) 
+    )
 
-def generate_session_df(txt_file_raw_content : List[str]) -> pd.DataFrame:
-    data = txt_file_raw_content[3:] 
+def generate_session_df(txt_file_raw_content: List[str]) -> pd.DataFrame:
+    """
+    Génère un DataFrame Pandas à partir du contenu brut d'un fichier texte de session.
+
+    Args:
+        txt_file_raw_content (List[str]): Contenu brut du fichier texte, ligne par ligne.
+
+    Returns:
+        pd.DataFrame: DataFrame contenant les données brutes de la session, avec les colonnes INDEX, RESP_THORAX, ACC_HORIZONTAL, ACC_VERTICAL, et les valeurs converties en unités physiques.
+    """
+    data = txt_file_raw_content[3:]
     result = []
     for line in data:
-        line_split = line.split() # On découpe chaque ligne en fonction des espaces
+        line_split = line.split()  # On découpe chaque ligne en fonction des espaces
         # La deuxième colonne est remplie de zéros, donc on l'ignore.
         result.append({
-            "INDEX" : int(line_split[0]),
-            "RESP_THORAX" : int(line_split[2]),
-            "ACC_HORIZONTAL" : int(line_split[3]),
-            "ACC_VERTICAL" : int(line_split[4])
+            "INDEX": int(line_split[0]),
+            "RESP_THORAX": int(line_split[2]),
+            "ACC_HORIZONTAL": int(line_split[3]),
+            "ACC_VERTICAL": int(line_split[4])
         })
-    df = pd.DataFrame(result) # Il s'agit de la Dataframe brute de la session, 
-    # Il faudra la segmenter en plusieurs Dataframes de séquences plus tard.
-    
+    df = pd.DataFrame(result)  # Il s'agit de la DataFrame brute de la session
+
     # Fonctions de transfert, on convertit les valeurs brutes en valeurs physiques
-    df["RESP_THORAX"] = df["RESP_THORAX"].apply(convert_thorax) # En pourcentage de la capacité totale
-    df["ACC_HORIZONTAL"] = df["ACC_HORIZONTAL"].apply(lambda x: (x - CMIN_X) / (CMAX_X - CMIN_X) * 2 - 1) # En g
-    df["ACC_VERTICAL"] = df["ACC_VERTICAL"].apply(lambda y: (y - CMIN_Y) / (CMAX_Y - CMIN_Y) * 2 - 1) # En g
-    
-    # Rajouter des filtres si besoin
-    
+    df["RESP_THORAX"] = df["RESP_THORAX"].apply(convert_thorax)  # En pourcentage de la capacité totale
+    df["ACC_HORIZONTAL"] = df["ACC_HORIZONTAL"].apply(lambda x: (x - CMIN_X) / (CMAX_X - CMIN_X) * 2 - 1)  # En g
+    df["ACC_VERTICAL"] = df["ACC_VERTICAL"].apply(lambda y: (y - CMIN_Y) / (CMAX_Y - CMIN_Y) * 2 - 1)  # En g
+
     return df
 
 def convert_thorax(raw_value: int) -> float:
+    """
+    Convertit une valeur brute du capteur thoracique en pourcentage de la capacité totale.
+
+    Args:
+        raw_value (int): Valeur brute du capteur.
+
+    Returns:
+        float: Valeur convertie en pourcentage.
+    """
     return (raw_value/(2**NBITS)-0.5)*100
 
-def segment_data(session_df : pd.DataFrame, metadata = SessionMetadata) -> List[pd.DataFrame]:
+def segment_data(session_df: pd.DataFrame, metadata: SessionMetadata) -> List[pd.DataFrame]:
+    """
+    Segmente un DataFrame de session en plusieurs DataFrames, un par séquence, selon les métadonnées fournies.
+
+    Args:
+        session_df (pd.DataFrame): DataFrame contenant les données de la session complète.
+        metadata (SessionMetadata): Métadonnées de la session, incluant les informations de segmentation.
+
+    Returns:
+        List[pd.DataFrame]: Liste de DataFrames, un par séquence.
+    """
     sequences = metadata.sequences
     df = session_df.copy()
     segmented_dfs = []
@@ -65,24 +99,35 @@ def segment_data(session_df : pd.DataFrame, metadata = SessionMetadata) -> List[
         segmented_dfs.append(sequence_df)
     return segmented_dfs
 
-def to_session(segmented_dfs : List[pd.DataFrame], metadata : SessionMetadata, header : SessionHeader) -> SessionInput:
+def to_session(segmented_dfs: List[pd.DataFrame], metadata: SessionMetadata, header: SessionHeader) -> SessionInput:
+    """
+    Convertit une liste de DataFrames segmentés et les métadonnées en un objet SessionInput.
+
+    Args:
+        segmented_dfs (List[pd.DataFrame]): Liste de DataFrames, un par séquence.
+        metadata (SessionMetadata): Métadonnées de la session.
+        header (SessionHeader): En-tête de la session.
+
+    Returns:
+        SessionInput: Objet représentant la session complète, prête à être envoyée au serveur.
+    """
     device_id = DEVICE_MAC_ADDRESS
     student_id = metadata.studentId
     session_id = metadata.sessionId
     session_description = metadata.sessionDescription
-    
+
     sequence_structure = [
         "INDEX",
         "RESP_THORAX",
         "ACC_HORIZONTAL",
         "ACC_VERTICAL"
     ]
-    
+
     sequence_sampling_rate = header.sampling_rate
     sequence_resolution = header.resolution
-    
+
     sequences = []
-    
+
     for sequence_df, sequence_metadata in zip(segmented_dfs, metadata.sequences):
         sequence_id = sequence_metadata.sequenceId
         sequence_start_datetime = header.start_datetime + pd.Timedelta(seconds=sequence_metadata.begin / sequence_sampling_rate)
@@ -92,61 +137,71 @@ def to_session(segmented_dfs : List[pd.DataFrame], metadata : SessionMetadata, h
             sequence_description = f"{session_description}, {sequence_metadata.sequenceDescription}"
         else:
             sequence_description = session_description
-        
+
         # Transformations sur la DataFrame
-        sequence_df = sequence_df.reset_index(drop=True) # On reset l'index (l'index est conservé lors 
-        # du séquençage, donc les séquences ne commencent pas forcément à 0 par défaut)
-        sequence_df["INDEX"] = sequence_df.index.astype(int) # On ajoute une colonne d'index
+        sequence_df = sequence_df.reset_index(drop=True)  # On reset l'index
+        sequence_df["INDEX"] = sequence_df.index.astype(int)  # On ajoute une colonne d'index
         data = sequence_df.values.tolist()
-        
+
         sequence_json = {
             "deviceId": device_id,
-            "studentId": student_id, # studentId privé, pour l'envoi au serveur
+            "studentId": student_id,  # studentId privé, pour l'envoi au serveur
             "sessionId": session_id,
             "sequenceId": sequence_id,
             "sequenceStartDateTime": sequence_start_datetime_str,
             "sequenceContext": sequence_context,
             "sequenceDescription": sequence_description,
-            "sequenceStructure" : sequence_structure,
+            "sequenceStructure": sequence_structure,
             "sequenceSamplingRate": sequence_sampling_rate,
             "sequenceResolution": sequence_resolution,
-            "data" : data
+            "data": data
         }
         sequences.append(SequenceInput(**sequence_json))
     session = SessionInput(studentId=student_id, sessionId=session_id, sequences=sequences)
     return session
-    
 
-def load_session(metadata_json : Dict, txt_file_raw_content : List[str]) -> SessionInput:
-    # CHARGEMNENT DES METADONNEES ET DU HEADER
-    
+def load_session(metadata_json: Dict, txt_file_raw_content: List[str]) -> SessionInput:
+    """
+    Charge une session complète à partir d'un fichier de métadonnées JSON et du contenu brut d'un fichier texte.
+
+    Args:
+        metadata_json (Dict): Dictionnaire contenant les métadonnées de la session.
+        txt_file_raw_content (List[str]): Contenu brut du fichier texte, ligne par ligne.
+
+    Returns:
+        SessionInput: Objet représentant la session complète, prête à être envoyée au serveur.
+    """
+    # CHARGEMENT DES METADONNEES ET DU HEADER
     metadata = SessionMetadata(**metadata_json)
     header = load_header(txt_file_raw_content)
-    
+
     # CHARGEMENT DES DONNEES
-    
     session_df = generate_session_df(txt_file_raw_content)
-    # Il s'agit de la Dataframe brute de la session, 
-    # Il faudra la segmenter en plusieurs Dataframes de séquences plus tard.
-    
-    
+
     # SEGMENTATION DES DONNEES
-    
-    segmented_dfs = segment_data(session_df, metadata) 
-    # Liste de DataFrames, une par séquence.
-    
+    segmented_dfs = segment_data(session_df, metadata)
+
     # CREATION DE L'OBJET SESSION
-    
     session = to_session(segmented_dfs, metadata, header)
-    
+
     return session
 
-# CHARGEMENT DE TOUTES LES SESSIONS A PARTIR D'UN REPERTOIRE DE DONNEES BRUTES    
-
 def load_all_sessions_from_raw_data(input_directory: str) -> List[SessionInput]:
+    """
+    Charge toutes les sessions à partir d'un répertoire contenant des données brutes.
+
+    Args:
+        input_directory (str): Chemin vers le répertoire contenant les sous-répertoires de sessions.
+
+    Returns:
+        List[SessionInput]: Liste d'objets SessionInput, un par session trouvée.
+
+    Raises:
+        FileNotFoundError: Si le chemin spécifié n'existe pas ou n'est pas un répertoire.
+    """
     if not os.path.isdir(input_directory):
         raise FileNotFoundError(f"Le chemin {input_directory} que vous avez renseigné n'existe pas ou n'est pas un répertoire")
-    
+
     session_dirs = [d for d in glob(os.path.join(input_directory, "*")) if os.path.isdir(d)]
     sessions = []
     for session_path in session_dirs:
@@ -156,16 +211,16 @@ def load_all_sessions_from_raw_data(input_directory: str) -> List[SessionInput]:
         except IndexError:
             print(f"Le répertoire {session_path} devrait contenir EXCLUSIVEMENT un fichier .txt et un fichier .json. Ignoré.")
             continue
-        
+
         print(f"Chargement de la session du répertoire : {session_path}")
-        
+
         with open(recording_file_path, 'r') as f:
             txt_file_raw_content = f.readlines()
-        
+
         with open(metadata_file_path, 'r') as meta_file:
             metadata_json = json.load(meta_file)
-        
+
         session = load_session(metadata_json, txt_file_raw_content)
         sessions.append(session)
-    
+
     return sessions
